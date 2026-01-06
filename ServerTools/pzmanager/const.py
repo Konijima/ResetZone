@@ -11,6 +11,7 @@ DEFAULT_SERVER_NAME = "servertest"
 CONFIG_DIR = os.path.expanduser("~/.config/pz_manager")
 GLOBAL_CONFIG_FILE = os.path.join(CONFIG_DIR, "global.json")
 INSTANCES_DIR = os.path.join(CONFIG_DIR, "instances")
+LOGS_DIR = os.path.join(CONFIG_DIR, "logs")
 # Deprecated but kept for migration check
 OLD_CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
