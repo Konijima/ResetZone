@@ -36,7 +36,9 @@ def manage_service_control(mgr):
         elif c == '3': run_cmd(f"sudo systemctl restart {svc}", shell=True, interactive=mgr.interactive)
         elif c == '4': 
             clear_screen()
-            run_cmd(f"journalctl -u {svc} -f -n 100", shell=True, interactive=mgr.interactive)
+             # Use -e to jump to end, but allow pager scrolling. 
+             # No -f so we can scroll back. User can press F in less to follow.
+            run_cmd(f"journalctl -u {svc} -e", shell=True, interactive=mgr.interactive)
         elif c == '5': install_service_file(mgr)
         elif c == '6': install_scheduler_service(mgr)
         elif c == 'b' or c == 'q' or c is None: return
