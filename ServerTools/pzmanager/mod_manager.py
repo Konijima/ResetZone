@@ -7,10 +7,10 @@ from .utils import print_header, InteractiveMenu, SelectionMenu, ReorderMenu, ge
 import itertools
 
 class InternalModManager:
-    def __init__(self, install_dir, steamcmd_dir):
+    def __init__(self, install_dir, steamcmd_dir, server_name="servertest"):
         self.install_dir = install_dir
         self.steamcmd_dir = steamcmd_dir
-        self.config_file = os.path.join(install_dir, "Zomboid/Server/servertest.ini")
+        self.config_file = os.path.join(install_dir, f"Zomboid/Server/{server_name}.ini")
         self.workshop_items = []
         self.mods = []
         self.title_cache = {}

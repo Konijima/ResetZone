@@ -100,7 +100,7 @@ def perform_map_cleanup(mgr):
             print(f"[Scheduler] List file not found at {list_file}. Skipping cleanup.")
             return
 
-    save_dir = os.path.join(install_dir, "Zomboid/Saves/Multiplayer/servertest")
+    save_dir = os.path.join(install_dir, f"Zomboid/Saves/Multiplayer/{mgr.config['server_name']}")
     if not os.path.exists(save_dir):
         print(f"[Scheduler] Save dir not found: {save_dir}")
         return

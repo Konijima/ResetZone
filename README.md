@@ -48,6 +48,8 @@ pz_manager status      # Check service status
 
 ### Features (via Interactive Menu)
 *   **Server Control:** View live logs, simple start/stop.
+*   **Configuration:** Manage memory, restart schedule, backups, and **server name / save files**.
+*   **Mod Manager:** Add/Remove Workshop items and Mods directly.
 *   **Mod Manager:** Download Workshop items, toggle specific mods inside items easily.
 *   **Backup/Restore:** Manage server data backups.
 

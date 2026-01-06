@@ -7,6 +7,7 @@ DEFAULT_INSTALL_DIR = os.path.expanduser("~/pzserver")
 DEFAULT_STEAMCMD_DIR = os.path.expanduser("~/steamcmd")
 DEFAULT_BACKUP_DIR = os.path.expanduser("~/pzbackups")
 DEFAULT_SERVICE_NAME = "pzserver"
+DEFAULT_SERVER_NAME = "servertest"
 CONFIG_FILE = os.path.expanduser("~/.config/pz_manager/config.json")
 
 # ANSI Colors

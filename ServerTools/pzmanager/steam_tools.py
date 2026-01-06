@@ -165,7 +165,8 @@ def execute_steam_update(mgr, branch, validate=False):
     mgr.wait_input("Press Enter...")
 
 def detect_rcon_settings(mgr):
-    ini = os.path.join(mgr.config["install_dir"], "Zomboid/Server/servertest.ini")
+    sname = mgr.config.get('server_name', 'servertest')
+    ini = os.path.join(mgr.config["install_dir"], f"Zomboid/Server/{sname}.ini")
     if os.path.exists(ini):
         with open(ini, 'r') as f:
             for line in f:
@@ -175,7 +176,7 @@ def detect_rcon_settings(mgr):
                     pwd = line.split("=", 1)[1].strip()
                     if pwd: mgr.config["rcon_password"] = pwd
         mgr.save_config()
-        print("Detected RCON settings from servertest.ini")
+        print(f"Detected RCON settings from {sname}.ini")
 
 def configure_server_files(mgr):
     print(f"{C_YELLOW}Applying Configuration fixes...{C_RESET}")

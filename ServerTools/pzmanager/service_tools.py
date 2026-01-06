@@ -55,7 +55,7 @@ After=network.target
 Type=simple
 User={user}
 WorkingDirectory={install_dir}
-ExecStart={install_dir}/start-server-steam.sh -adminpassword password -servername servertest -cachedir={install_dir}/Zomboid
+ExecStart={install_dir}/start-server-steam.sh -adminpassword password -servername {mgr.config['server_name']} -cachedir={install_dir}/Zomboid
 Restart=always
 
 [Install]

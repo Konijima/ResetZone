@@ -3,7 +3,7 @@ import sys
 import json
 import subprocess
 from .const import *
-from .utils import print_header, run_cmd, InteractiveMenu, format_info_box
+from .utils import print_header, run_cmd, InteractiveMenu, format_info_box, get_existing_server_names
 from . import steam_tools
 from . import service_tools
 from . import scheduler
@@ -30,6 +30,7 @@ class PZManager:
         self.config.setdefault("steamcmd_dir", DEFAULT_STEAMCMD_DIR)
         self.config.setdefault("backup_dir", DEFAULT_BACKUP_DIR)
         self.config.setdefault("service_name", DEFAULT_SERVICE_NAME)
+        self.config.setdefault("server_name", DEFAULT_SERVER_NAME)
         self.config.setdefault("memory", "4g")
         self.config.setdefault("restart_times", [0, 6, 12, 18]) 
         self.config.setdefault("rcon_host", "127.0.0.1")
@@ -116,15 +117,18 @@ class PZManager:
         while True:
             def info():
                 return format_info_box({
+                    "Server Name": self.config['server_name'],
                     "Current Memory": self.config['memory'],
                     "Restart Schedule": str(self.config['restart_times']),
                     "Auto Backup": str(self.config.get("auto_backup", True)),
                     "Backup Retention": str(self.config.get("backup_retention", 5))
                 })
 
+            sname = self.config['server_name']
             items = [
-                ("Edit servertest.ini", '1'),
-                ("Edit Sandbox Vars", '2'),
+                (f"Change Server Name", 'change_name'),
+                (f"Edit {sname}.ini", '1'),
+                (f"Edit {sname}_SandboxVars.lua", '2'),
                 (f"Change Memory Limit", '3'),
                 (f"Edit Restart Schedule", '4'),
                 (f"Toggle Auto Backup", 'toggle_backup'),
@@ -138,11 +142,13 @@ class PZManager:
             last_index = menu.selected
 
             if choice == 'b' or choice == 'q' or choice is None: return
+            elif choice == 'change_name':
+                self.change_server_name_ui()
             elif choice == '1':
-                p = os.path.join(self.config['install_dir'], "Zomboid/Server/servertest.ini")
+                p = os.path.join(self.config['install_dir'], f"Zomboid/Server/{self.config['server_name']}.ini")
                 run_cmd(f"nano {p}", shell=True)
             elif choice == '2':
-                p = os.path.join(self.config['install_dir'], "Zomboid/Server/servertest_SandboxVars.lua")
+                p = os.path.join(self.config['install_dir'], f"Zomboid/Server/{self.config['server_name']}_SandboxVars.lua")
                 run_cmd(f"nano {p}", shell=True)
             elif choice == '3':
                 val = input(f"Enter memory (e.g. 4g, 8192m) [Current: {self.config['memory']}]: ").strip()
@@ -171,6 +177,30 @@ class PZManager:
                     self.save_config()
             elif choice == '5':
                 self.submenu_rcon()
+
+    def change_server_name_ui(self):
+        existing = get_existing_server_names(self.config['install_dir'])
+        
+        print(f"\n{C_CYAN}Current Server Name:{C_RESET} {self.config['server_name']}")
+        if existing:
+            print(f"{C_YELLOW}Detected existing config files (in Zomboid/Server/):{C_RESET}")
+            for s in existing:
+                print(f" - {s}")
+        else:
+            print(f"{C_YELLOW}No other existing server configs detected.{C_RESET}")
+        
+        new_name = input(f"\nEnter new server name (or existing one) [Leave empty to cancel]: ").strip()
+        if new_name:
+            if new_name != self.config['server_name']:
+                self.config['server_name'] = new_name
+                self.save_config()
+                print(f"{C_GREEN}Server name updated to '{new_name}'. Updating service file...{C_RESET}")
+                service_tools.install_service_file(self)
+                print(f"{C_YELLOW}NOTE: You must RESTART the service for this to take effect!{C_RESET}")
+                self.wait_input()
+            else:
+                print("Name unchanged.")
+                self.wait_input()
 
     def submenu_rcon(self):
         last_index = 0
@@ -249,7 +279,7 @@ class PZManager:
 
     def manage_mods(self):
         # Initialize internal mod manager if needed
-        mm = InternalModManager(self.config['install_dir'], self.config['steamcmd_dir'])
+        mm = InternalModManager(self.config['install_dir'], self.config['steamcmd_dir'], self.config.get('server_name', 'servertest'))
         mm.run()
 
 

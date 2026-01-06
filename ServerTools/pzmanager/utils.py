@@ -175,3 +175,18 @@ def format_info_box(items_dict):
         lines.append(f"│ {k}{sk} : {v}{sv} │")
     lines.append(border_bottom)
     return "\n".join(lines)
+
+def get_existing_server_names(install_dir):
+    """
+    Scans the Zomboid/Server directory for .ini files to find existing servers.
+    """
+    server_dir = os.path.join(install_dir, "Zomboid/Server")
+    found = []
+    if os.path.exists(server_dir):
+        for f in os.listdir(server_dir):
+            if f.endswith(".ini") and not f == "servertest_SandboxVars.lua": # Basic check
+                name = os.path.splitext(f)[0]
+                found.append(name)
+    found.sort()
+    return found
+
