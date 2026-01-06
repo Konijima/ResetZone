@@ -2,7 +2,7 @@ import os
 import glob
 from datetime import datetime
 from .const import *
-from .utils import print_header, run_cmd, InteractiveMenu
+from .utils import print_header, run_cmd, InteractiveMenu, safe_input
 
 def get_recent_backups(mgr):
     b_dir = mgr.config.get("backup_dir", DEFAULT_BACKUP_DIR)
@@ -79,7 +79,8 @@ def process_restore(mgr, backup_file):
     print(f"{C_RED}WARNING: This will overwrite data in:{C_RESET}")
     print(f"{data_dir}")
     
-    if input(f"\n{C_YELLOW}Are you sure? (type 'yes' to confirm): {C_RESET}").lower() == 'yes':
+    val = safe_input(f"\n{C_YELLOW}Are you sure? (type 'yes' to confirm): {C_RESET}")
+    if (val or "").lower() == 'yes':
         os.makedirs(parent, exist_ok=True)
         run_cmd(["tar", "-xzf", backup_file, "-C", parent], interactive=mgr.interactive)
         print("Restore complete.")
@@ -89,7 +90,8 @@ def process_delete(mgr, backup_file):
     print_header("Delete Confirmation")
     print(f"Deleting: {C_BOLD}{os.path.basename(backup_file)}{C_RESET}")
     
-    if input(f"\n{C_RED}Are you sure you want to delete this file? (yes/no): {C_RESET}").lower() == 'yes':
+    val = safe_input(f"\n{C_RED}Are you sure you want to delete this file? (yes/no): {C_RESET}")
+    if (val or "").lower() == 'yes':
         try:
             os.remove(backup_file)
             print("Deleted.")

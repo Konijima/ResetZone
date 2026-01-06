@@ -131,6 +131,17 @@ def print_header(title):
     print(f"{C_BLUE}{C_BOLD}=== {title} ==={C_RESET}")
     print(f"{C_CYAN}Project Zomboid Server Manager (Python Edition){C_RESET}\n")
 
+def safe_input(prompt=""):
+    """
+    Wrapper for input() that catches KeyboardInterrupt (Ctrl+C).
+    Returns the stripped input string, or None if cancelled.
+    """
+    try:
+        return input(prompt).strip()
+    except KeyboardInterrupt:
+        print(f"\n{C_YELLOW}^C (Cancelled){C_RESET}")
+        return None
+
 def run_cmd(cmd, shell=False, check=True, interactive=True):
     try:
         return subprocess.run(cmd, shell=shell, check=check, text=True)
@@ -140,7 +151,7 @@ def run_cmd(cmd, shell=False, check=True, interactive=True):
     except subprocess.CalledProcessError as e:
         print(f"{C_RED}Command failed: {e}{C_RESET}")
         if interactive:
-            input("Press Enter to continue...")
+            safe_input("Press Enter to continue...")
         else:
             sys.exit(1)
         return None

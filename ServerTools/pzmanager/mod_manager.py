@@ -3,7 +3,7 @@ import subprocess
 import urllib.request
 import re
 from .const import *
-from .utils import print_header, InteractiveMenu, SelectionMenu, ReorderMenu, get_key, clear_screen
+from .utils import print_header, InteractiveMenu, SelectionMenu, ReorderMenu, get_key, clear_screen, safe_input
 import itertools
 
 class InternalModManager:
@@ -132,12 +132,14 @@ class InternalModManager:
                 if last_index == 2: last_index = 3 # Skip separator
             elif c == '\r': # Enter
                 if last_index == 0: # Add
-                    wid = input("\nWorkshop ID: ").strip()
+                    wid = safe_input("\nWorkshop ID: ")
                     if wid:
+                        wid = wid.strip()
                         if wid not in self.workshop_items:
                             self.workshop_items.append(wid)
                             self.save()
-                            if input("Download now? (y/n) ").lower() == 'y':
+                            yn = safe_input("Download now? (y/n) ")
+                            if (yn or '').lower() == 'y':
                                 self.download(wid)
                 elif last_index == 1: # Global Order
                     # Prepare renderer
@@ -180,7 +182,8 @@ class InternalModManager:
                     if sel == 'm':
                         self.menu_item(wid)
                     elif sel == 'r':
-                        if input(f"Remove {wid}? (y/n) ").lower() == 'y':
+                        yn = safe_input(f"Remove {wid}? (y/n) ")
+                        if (yn or '').lower() == 'y':
                             self.workshop_items.pop(curr_item_idx)
                             self.save()
                             # Correction for cursor if we removed last item
@@ -197,7 +200,8 @@ class InternalModManager:
             if not available:
                 print_header(f"Workshop Item {wid}")
                 print("No mods found locally. (Try downloading the item)")
-                if input("Download? (y/n) ").lower() == 'y':
+                yn = safe_input("Download? (y/n) ")
+                if (yn or '').lower() == 'y':
                     self.download(wid)
                     continue
                 else:

@@ -4,7 +4,7 @@ import json
 import subprocess
 import shutil
 from .const import *
-from .utils import print_header, run_cmd, InteractiveMenu, format_info_box, get_existing_server_names
+from .utils import print_header, run_cmd, InteractiveMenu, format_info_box, get_existing_server_names, safe_input
 from . import steam_tools
 from . import service_tools
 from . import scheduler
@@ -110,7 +110,7 @@ class PZManager:
 
     def wait_input(self, msg="Press Enter to continue..."):
         if self.interactive:
-            input(msg)
+            safe_input(msg)
             
     # --- Wrappers for Modules ---
     
@@ -221,17 +221,18 @@ class PZManager:
             
             elif choice == 'create':
                 print_header("Create Instance")
-                name = input("Enter new instance name (alphanumeric, no spaces): ").strip()
-                if name and name.isalnum():
-                    if name in instances:
-                        print("Instance already exists.")
-                        self.wait_input()
+                name = safe_input("Enter new instance name (alphanumeric, no spaces): ")
+                if name:
+                    name = name.strip()
+                    if name and name.isalnum():
+                        if name in instances:
+                            print("Instance already exists.")
+                            self.wait_input()
+                        else:
+                            self.load_instance_config(name)
+                            print(f"Created and switched to {name}")
+                            self.wait_input()
                     else:
-                        self.load_instance_config(name)
-                        print(f"Created and switched to {name}")
-                        self.wait_input()
-                else:
-                    if name:
                         print("Invalid name.")
                         self.wait_input()
             
@@ -243,7 +244,8 @@ class PZManager:
                 for f in found:
                     if f not in instances:
                         print(f" - Found unmanaged server: {f}")
-                        yn = input(f"   Import as instance '{f}'? [y/N]: ").strip().lower()
+                        yn_raw = safe_input(f"   Import as instance '{f}'? [y/N]: ")
+                        yn = yn_raw.lower() if yn_raw else ''
                         if yn == 'y':
                             # Create a config for it
                             prev = self.current_instance
@@ -303,14 +305,14 @@ class PZManager:
                 p = os.path.join(self.config['install_dir'], f"Zomboid/Server/{self.config['server_name']}_SandboxVars.lua")
                 run_cmd(f"nano {p}", shell=True)
             elif choice == '3':
-                val = input(f"Enter memory (e.g. 4g, 8192m) [Current: {self.config['memory']}]: ").strip()
+                val = safe_input(f"Enter memory (e.g. 4g, 8192m) [Current: {self.config['memory']}]: ")
                 if val:
                     self.config['memory'] = val
                     self.save_config()
                     steam_tools.configure_server_files(self)
             elif choice == '4':
                 print(f"Current Schedule: {self.config['restart_times']}")
-                val = input("Enter hours (comma separated, e.g. 0,6,12,18): ").strip()
+                val = safe_input("Enter hours (comma separated, e.g. 0,6,12,18): ")
                 if val:
                     try:
                         self.config['restart_times'] = [int(x.strip()) for x in val.split(",")]
@@ -323,8 +325,8 @@ class PZManager:
                 self.config["auto_backup"] = not curr
                 self.save_config()
             elif choice == 'set_retention':
-                val = input(f"Enter retention count (Default 5) [Current: {self.config.get('backup_retention', 5)}]: ").strip()
-                if val.isdigit():
+                val = safe_input(f"Enter retention count (Default 5) [Current: {self.config.get('backup_retention', 5)}]: ")
+                if val and val.isdigit():
                     self.config["backup_retention"] = int(val)
                     self.save_config()
             elif choice == '5':
@@ -341,7 +343,7 @@ class PZManager:
         else:
             print(f"{C_YELLOW}No other existing server configs detected.{C_RESET}")
         
-        new_name = input(f"\nEnter new server name (or existing one) [Leave empty to cancel]: ").strip()
+        new_name = safe_input(f"\nEnter new server name (or existing one) [Leave empty to cancel]: ")
         if new_name:
             if new_name != self.config['server_name']:
                 self.config['server_name'] = new_name
@@ -377,21 +379,22 @@ class PZManager:
 
             if c == 'b' or c == 'q' or c is None: return
             elif c == '1':
-                val = input(f"Host [{self.config['rcon_host']}]: ").strip()
+                val = safe_input(f"Host [{self.config['rcon_host']}]: ")
                 if val: 
                     self.config['rcon_host'] = val
                     self.save_config()
             elif c == '2':
-                val = input(f"Port [{self.config['rcon_port']}]: ").strip()
+                val = safe_input(f"Port [{self.config['rcon_port']}]: ")
                 if val:
                     try:
                         self.config['rcon_port'] = int(val)
                         self.save_config()
                     except: pass
             elif c == '3':
-                val = input("Password: ").strip()
-                self.config['rcon_password'] = val
-                self.save_config()
+                val = safe_input("Password: ")
+                if val is not None: # Empty password allowed?
+                    self.config['rcon_password'] = val
+                    self.save_config()
 
 
 

@@ -4,7 +4,7 @@ import json
 import re
 import subprocess
 from .const import *
-from .utils import print_header, run_cmd, InteractiveMenu
+from .utils import print_header, run_cmd, InteractiveMenu, safe_input
 
 def ensure_steamcmd(mgr):
     steam_sh = os.path.join(mgr.config["steamcmd_dir"], "steamcmd.sh")
@@ -77,9 +77,9 @@ def select_branch_menu(mgr):
             print("Could not fetch branches or none found.")
             mgr.wait_input()
     elif c == 'manual':
-        val = input(f"Enter Branch Name (e.g. public, unstable, b41multiplayer) [{current}]: ").strip()
+        val = safe_input(f"Enter Branch Name (e.g. public, unstable, b41multiplayer) [{current}]: ")
         if val:
-            mgr.config["branch"] = val
+            mgr.config["branch"] = val.strip()
             mgr.save_config()
 
 def fetch_branches(mgr):
