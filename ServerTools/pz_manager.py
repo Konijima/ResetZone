@@ -49,22 +49,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nAborted.")
         sys.exit(0)
-            elif cmd == "help":
-                print("Usage: pz_manager [COMMAND]")
-                print("\nCommands:")
-                print("  start      Start the server service")
-                print("  stop       Stop the server service")
-                print("  restart    Restart the server service")
-                print("  status     Check usage status")
-                print("  logs       View server logs")
-                print("  install    Run server installer/updater")
-                print("  backup     Run backup tool")
-                print("\n  --scheduler  Run the scheduler daemon (INTERNAL USE: Do not run manually)")
-            else:
-                print(f"Unknown command: {cmd}")
-                print("Run 'pz_manager help' for usage.")
-        else:
-            app.main_menu()
-    except KeyboardInterrupt:
-        print("\nBye.")
-        sys.exit(0)
