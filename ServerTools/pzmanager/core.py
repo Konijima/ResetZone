@@ -280,7 +280,6 @@ class PZManager:
 
             sname = self.config['server_name']
             items = [
-                (f"Change Server Name", 'change_name'),
                 (f"Edit {sname}.ini", '1'),
                 (f"Edit {sname}_SandboxVars.lua", '2'),
                 (f"Change Memory Limit", '3'),
@@ -296,8 +295,6 @@ class PZManager:
             last_index = menu.selected
 
             if choice == 'b' or choice == 'q' or choice is None: return
-            elif choice == 'change_name':
-                self.change_server_name_ui()
             elif choice == '1':
                 p = os.path.join(self.config['install_dir'], f"Zomboid/Server/{self.config['server_name']}.ini")
                 run_cmd(f"nano {p}", shell=True)
@@ -331,30 +328,6 @@ class PZManager:
                     self.save_config()
             elif choice == '5':
                 self.submenu_rcon()
-
-    def change_server_name_ui(self):
-        existing = get_existing_server_names(self.config['install_dir'])
-        
-        print(f"\n{C_CYAN}Current Server Name:{C_RESET} {self.config['server_name']}")
-        if existing:
-            print(f"{C_YELLOW}Detected existing config files (in Zomboid/Server/):{C_RESET}")
-            for s in existing:
-                print(f" - {s}")
-        else:
-            print(f"{C_YELLOW}No other existing server configs detected.{C_RESET}")
-        
-        new_name = safe_input(f"\nEnter new server name (or existing one) [Leave empty to cancel]: ")
-        if new_name:
-            if new_name != self.config['server_name']:
-                self.config['server_name'] = new_name
-                self.save_config()
-                print(f"{C_GREEN}Server name updated to '{new_name}'. Updating service file...{C_RESET}")
-                service_tools.install_service_file(self)
-                print(f"{C_YELLOW}NOTE: You must RESTART the service for this to take effect!{C_RESET}")
-                self.wait_input()
-            else:
-                print("Name unchanged.")
-                self.wait_input()
 
     def submenu_rcon(self):
         last_index = 0
