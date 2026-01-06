@@ -12,58 +12,46 @@ git clone https://github.com/Konijima/ResetZone.git
 cd ResetZone
 
 # 3. Setup 'pz_manager' command
-sudo cp System/ServerTools/pz_manager.sh /usr/local/bin/pz_manager
-sudo chmod +x /usr/local/bin/pz_manager
+# (Requires Python 3)
+chmod +x System/ServerTools/pz_manager.py
+sudo ln -sf "$PWD/System/ServerTools/pz_manager.py" /usr/local/bin/pz_manager
 
-# 4. Install Project Zomboid Server
-pz_manager install
-# (This creates the server at ~/pzserver and generated a systemd service)
-
-# 5. Build and Install the ResetZone Java Agent
-pz_manager setup-agent
-# (Automatically finds source in ./System/JavaAgent or ~/ResetZone)
+# 4. Open the Management Menu
+pz_manager
+# Use the interactive menu to:
+# 1. [Install / Update Server]
+# 2. [ResetZone Agent Manager] -> Build & Install Agent
 ```
 
 ## 2. Configuration
-Now configure the server to load the mod.
+Use `pz_manager` -> **Mod Manager** to easily add the Workshop Item and Mod.
 
-```bash
-# Edit server configuration
-pz_manager edit-config
-```
-
-**Add these lines:**
-```ini
-WorkshopItems=3639275134
-Mods=ResetZone
-```
-*(Save: Ctrl+O, Enter. Open Sandbox vars: `pz_manager edit-sandbox`)*
+**Required:**
+*   Workshop ID: `3639275134`
+*   Mod ID: `ResetZone`
 
 ## 3. Usage
-You can manage the entire server using the `pz_manager` command.
+The `pz_manager` tool provides an interactive menu for all server tasks.
 
-### Server Control
 ```bash
-pz_manager start       # Start the server (background service)
-pz_manager stop        # Stop the server
-pz_manager restart     # Restart the server
-pz_manager status      # Check if server is running
-pz_manager logs        # View live console logs (Ctrl+C to exit)
+pz_manager
 ```
 
-### Configuration & Modification
+### Quick Commands (CLI)
+You can also use these shortcuts for service control:
 ```bash
-pz_manager edit-config   # Edit servertest.ini (Mods, Settings)
-pz_manager edit-sandbox  # Edit Sandbox Options
-pz_manager setup-agent   # Re-build and install the ResetZone Agent
+pz_manager start       # Start background service
+pz_manager stop        # Stop service
+pz_manager restart     # Restart service
+pz_manager status      # Check service status
 ```
 
-### Maintenance
-```bash
-pz_manager update      # Update Project Zomboid via SteamCMD
-pz_manager backup      # Create a backup of the 'Zomboid' data folder
-pz_manager restore     # Restore data from a previous backup
-```
+### Features (via Interactive Menu)
+*   **Server Control:** View live logs, simple start/stop.
+*   **Mod Manager:** Download Workshop items, toggle specific mods inside items easily.
+*   **Agent Manager:** Auto-build and install the Java agent.
+*   **Backup/Restore:** Manage server data backups.
+
 
 ---
 ### Repository Structure
