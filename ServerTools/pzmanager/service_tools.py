@@ -2,27 +2,37 @@ import os
 import sys
 import subprocess
 from .const import *
-from .utils import print_header, run_cmd, InteractiveMenu, clear_screen, format_info_box
+from .utils import print_header, run_cmd, InteractiveMenu, clear_screen, format_info_box, safe_input
 
 def manage_service_control(mgr):
     last_idx = 0
     while True:
+        svc = mgr.config["service_name"]
+        sched_svc = svc + "-scheduler"
+        
+        svc_installed = os.path.exists(f"/etc/systemd/system/{svc}.service")
+        sched_installed = os.path.exists(f"/etc/systemd/system/{sched_svc}.service")
+
         def info():
-            svc = mgr.config["service_name"]
             status_out = subprocess.run(f"systemctl is-active {svc}", shell=True, capture_output=True, text=True).stdout.strip()
             color = C_GREEN if status_out == "active" else C_RED
             return format_info_box({
                 "Service": f"{C_BOLD}{svc}{C_RESET}",
-                "Status": f"{color}{status_out}{C_RESET}"
+                "Status": f"{color}{status_out}{C_RESET}",
+                "Service File": f"{C_GREEN}Installed{C_RESET}" if svc_installed else f"{C_RED}Missing{C_RESET}",
+                "Scheduler": f"{C_GREEN}Installed{C_RESET}" if sched_installed else f"{C_RED}Missing{C_RESET}"
             })
         
+        svc_action_label = "Uninstall Service File" if svc_installed else "Install Service File"
+        sched_action_label = "Uninstall Scheduler" if sched_installed else "Install Scheduler (Auto-Restart)"
+
         items = [
             ("Start", '1'),
             ("Stop", '2'),
             ("Restart", '3'),
             ("View Logs", '4'),
-            ("Install Service File", '5'),
-            ("Install Scheduler (Auto-Restart)", '6'),
+            (svc_action_label, '5'),
+            (sched_action_label, '6'),
             ("Back", 'b')
         ]
 
@@ -30,7 +40,6 @@ def manage_service_control(mgr):
         c = menu.show()
         last_idx = menu.selected
         
-        svc = mgr.config["service_name"]
         if c == '1': run_cmd(f"sudo systemctl start {svc}", shell=True, interactive=mgr.interactive)
         elif c == '2': run_cmd(f"sudo systemctl stop {svc}", shell=True, interactive=mgr.interactive)
         elif c == '3': run_cmd(f"sudo systemctl restart {svc}", shell=True, interactive=mgr.interactive)
@@ -39,9 +48,32 @@ def manage_service_control(mgr):
              # Use -e to jump to end, but allow pager scrolling. 
              # No -f so we can scroll back. User can press F in less to follow.
             run_cmd(f"journalctl -u {svc} -e", shell=True, interactive=mgr.interactive)
-        elif c == '5': install_service_file(mgr)
-        elif c == '6': install_scheduler_service(mgr)
+        elif c == '5': 
+            if svc_installed: uninstall_service_file(mgr, svc)
+            else: install_service_file(mgr)
+        elif c == '6':
+            if sched_installed: uninstall_service_file(mgr, sched_svc, is_scheduler=True)
+            else: install_scheduler_service(mgr)
         elif c == 'b' or c == 'q' or c is None: return
+
+def uninstall_service_file(mgr, service_name, is_scheduler=False):
+    print_header("Uninstall Service")
+    print(f"Service: {C_BOLD}{service_name}{C_RESET}")
+    
+    if is_scheduler:
+         print(f"{C_YELLOW}This will disable the auto-restart scheduler.{C_RESET}")
+    else:
+         print(f"{C_RED}WARNING: This will remove the main server service file!{C_RESET}")
+
+    yn_raw = safe_input(f"\nAre you sure you want to uninstall {service_name}? (y/N): ")
+    yn = yn_raw.lower() if yn_raw else ""
+    if yn == 'y':
+        run_cmd(f"sudo systemctl stop {service_name}", shell=True, interactive=mgr.interactive)
+        run_cmd(f"sudo systemctl disable {service_name}", shell=True, interactive=mgr.interactive)
+        run_cmd(f"sudo rm /etc/systemd/system/{service_name}.service", shell=True, interactive=mgr.interactive)
+        run_cmd("sudo systemctl daemon-reload", shell=True, interactive=mgr.interactive)
+        print(f"{service_name} uninstalled.")
+        mgr.wait_input()
 
 def install_service_file(mgr):
     if mgr.interactive: print_header("Install Service")
