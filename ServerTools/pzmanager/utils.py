@@ -3,6 +3,7 @@ import sys
 import subprocess
 import tty
 import termios
+import select
 from .const import *
 
 def get_key():
@@ -14,8 +15,14 @@ def get_key():
         if ch == '\x03': # Ctrl+C
             return 'q'
         if ch == '\x1b':
-            seq = sys.stdin.read(2)
-            ch += seq
+            # Check if there are further characters (ANSI sequence) for arrow keys
+            dr, _, _ = select.select([sys.stdin], [], [], 0.05)
+            if dr:
+                seq = sys.stdin.read(2)
+                ch += seq
+            else:
+                # Single Escape press
+                return 'b'
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
