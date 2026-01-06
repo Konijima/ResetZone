@@ -8,7 +8,7 @@ Run these commands on your Linux server.
 sudo apt update && sudo apt install git default-jdk -y
 
 # 2. Clone repository
-git clone https://github.com/konijima/ResetZone.git
+git clone https://github.com/Konijima/ResetZone.git
 cd ResetZone
 
 # 3. Setup 'pz_manager' command

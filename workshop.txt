@@ -19,8 +19,8 @@ description=[h1]Installation Requirement[/h1]
 description=This is a [b]Hybrid Mod[/b] requiring both this Workshop item and a server-side Java Agent.
 description=[b]The mod will not function by simply subscribing.[/b] You must perform a backend installation on your server.
 description=
-description=Full setup instructions and files are available on GitHub:
-description=[url=https://github.com/konijima/ResetZone]https://github.com/konijima/ResetZone[/url]
+description=Files and setup guide available on GitHub:
+description=[url=https://github.com/Konijima/ResetZone]https://github.com/Konijima/ResetZone[/url]
 description=
 description=[h1]How to Use[/h1]
 description=[olist]
