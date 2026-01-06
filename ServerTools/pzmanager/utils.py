@@ -10,16 +10,20 @@ def get_key():
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
-        tty.setraw(sys.stdin.fileno())
-        ch = sys.stdin.read(1)
+        tty.setraw(fd)
+        # Use os.read instead of sys.stdin.read to avoid buffering issues with select()
+        ch_bytes = os.read(fd, 1)
+        ch = ch_bytes.decode(errors='ignore')
+        
         if ch == '\x03': # Ctrl+C
             return 'q'
         if ch == '\x1b':
             # Check if there are further characters (ANSI sequence) for arrow keys
-            dr, _, _ = select.select([sys.stdin], [], [], 0.05)
+            dr, _, _ = select.select([fd], [], [], 0.05)
             if dr:
-                seq = sys.stdin.read(2)
-                ch += seq
+                # Sequence detected
+                seq_bytes = os.read(fd, 2)
+                ch += seq_bytes.decode(errors='ignore')
             else:
                 # Single Escape press
                 return 'b'
