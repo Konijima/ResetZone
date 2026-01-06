@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import subprocess
+import shutil
 from .const import *
 from .utils import print_header, run_cmd, InteractiveMenu, format_info_box, get_existing_server_names
 from . import steam_tools
@@ -11,26 +12,70 @@ from . import backup_tools
 from .mod_manager import InternalModManager
 
 class PZManager:
-    def __init__(self, interactive=True):
+    def __init__(self, interactive=True, instance_name=None):
         self.interactive = interactive
+        self.global_config = {}
         self.config = {}
-        self.load_config()
+        self.current_instance = "default"
+        
+        self.ensure_struct()
+        self.load_global_config()
+        
+        if instance_name:
+            self.load_instance_config(instance_name)
+        else:
+            # Load the last active instance or default
+            tgt = self.global_config.get("last_instance", "default")
+            self.load_instance_config(tgt)
 
-    def load_config(self):
-        if os.path.exists(CONFIG_FILE):
+    def ensure_struct(self):
+        os.makedirs(INSTANCES_DIR, exist_ok=True)
+        # Migration: If old config exists and we have no instances, move it
+        if os.path.exists(OLD_CONFIG_FILE) and not os.listdir(INSTANCES_DIR):
+            print(f"{C_YELLOW}Migrating legacy config to default instance...{C_RESET}")
+            shutil.move(OLD_CONFIG_FILE, os.path.join(INSTANCES_DIR, "default.json"))
+
+    def load_global_config(self):
+        if os.path.exists(GLOBAL_CONFIG_FILE):
             try:
-                with open(CONFIG_FILE, 'r') as f:
+                with open(GLOBAL_CONFIG_FILE, 'r') as f:
+                    self.global_config = json.load(f)
+            except: self.global_config = {}
+        self.global_config.setdefault("last_instance", "default")
+        self.save_global_config()
+
+    def save_global_config(self):
+        with open(GLOBAL_CONFIG_FILE, 'w') as f:
+            json.dump(self.global_config, f, indent=4)
+
+    def load_instance_config(self, inst_name):
+        self.current_instance = inst_name
+        p = os.path.join(INSTANCES_DIR, f"{inst_name}.json")
+        
+        if os.path.exists(p):
+            try:
+                with open(p, 'r') as f:
                     self.config = json.load(f)
             except Exception as e:
-                print(f"{C_RED}Error loading config: {e}{C_RESET}")
+                print(f"{C_RED}Error loading instance '{inst_name}': {e}{C_RESET}")
                 self.config = {}
-        
-        # Set defaults if missing
+        else:
+            self.config = {}
+            if inst_name == "default":
+                 # If default doesn't exist (fresh install), defaults will set
+                 pass
+            else:
+                 print(f"{C_YELLOW}Creating new instance: {inst_name}{C_RESET}")
+
+        # Set defaults if missing (Same as before)
         self.config.setdefault("install_dir", DEFAULT_INSTALL_DIR)
         self.config.setdefault("steamcmd_dir", DEFAULT_STEAMCMD_DIR)
         self.config.setdefault("backup_dir", DEFAULT_BACKUP_DIR)
-        self.config.setdefault("service_name", DEFAULT_SERVICE_NAME)
-        self.config.setdefault("server_name", DEFAULT_SERVER_NAME)
+        
+        # Instance specific defaults - Try to make service/server name match instance if new
+        self.config.setdefault("service_name", f"pzserver-{inst_name}" if inst_name != "default" else DEFAULT_SERVICE_NAME)
+        self.config.setdefault("server_name", inst_name if inst_name != "default" else DEFAULT_SERVER_NAME)
+        
         self.config.setdefault("memory", "4g")
         self.config.setdefault("restart_times", [0, 6, 12, 18]) 
         self.config.setdefault("rcon_host", "127.0.0.1")
@@ -39,12 +84,29 @@ class PZManager:
         self.config.setdefault("branch", "unstable")
         self.config.setdefault("auto_backup", True)
         self.config.setdefault("backup_retention", 5)
+        
         self.save_config()
+        
+        # Update global last used
+        self.global_config["last_instance"] = inst_name
+        self.save_global_config()
+
+    def load_config(self):
+        # Legacy/Alias wrapper just in case
+        self.load_instance_config(self.current_instance)
 
     def save_config(self):
-        os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
-        with open(CONFIG_FILE, 'w') as f:
+        p = os.path.join(INSTANCES_DIR, f"{self.current_instance}.json")
+        with open(p, 'w') as f:
             json.dump(self.config, f, indent=4)
+
+    def list_instances(self):
+        res = []
+        if os.path.exists(INSTANCES_DIR):
+            for f in os.listdir(INSTANCES_DIR):
+                if f.endswith(".json"):
+                    res.append(f[:-5])
+        return sorted(res)
 
     def wait_input(self, msg="Press Enter to continue..."):
         if self.interactive:
@@ -75,6 +137,7 @@ class PZManager:
                 next_restart = scheduler.get_next_restart_info(self) if is_active else "Scheduler Inactive"
                 
                 return format_info_box({
+                    "Active Instance": f"{C_BOLD}{self.current_instance}{C_RESET}",
                     "Server Dir": self.config['install_dir'],
                     "Service": self.config['service_name'],
                     "Next Restart": next_restart,
@@ -89,13 +152,13 @@ class PZManager:
                 ("Server Control (Start/Stop/Logs/Scheduler)", '1'),
                 ("Configuration (Memory, settings)", '2'),
                 ("Mod Manager (Workshop & Mods)", '3'),
+                ("Manage Instances (Multi-Server)", '4'),
                 ("Backup / Restore", '5'),
                 (install_label, '6'),
                 ("Quit", 'q')
             ]
 
             if not self.interactive:
-                # Fallback for non-interactive (just print and exit or use old way - mainly for CLI args path)
                 print("Interactive mode required for menu.")
                 sys.exit(1)
 
@@ -106,11 +169,88 @@ class PZManager:
             if choice == '1': self.manage_service_control()
             elif choice == '2': self.submenu_config()
             elif choice == '3': self.manage_mods()
+            elif choice == '4': self.submenu_instances()
             elif choice == '5': self.submenu_backup()
             elif choice == '6': self.install_server()
             elif choice == 'q' or choice is None:
                 print("Bye.")
                 sys.exit(0)
+
+    def submenu_instances(self):
+        while True:
+            instances = self.list_instances()
+            
+            print_header("Manage Instances")
+            print(f"Current Instance: {C_GREEN}{self.current_instance}{C_RESET}")
+            print(f"Available Instances: {', '.join(instances)}\n")
+            
+            print("1. Switch Instance")
+            print("2. Create New Instance")
+            print("3. Detect & Import Existing Servers (from Zomboid/Server)")
+            print("b. Back")
+            
+            c = input("\nSelect: ").strip().lower()
+            
+            if c == 'b': return
+            elif c == '1':
+                print("\nAvailable Instances:")
+                for i, inst in enumerate(instances):
+                    curr = " *" if inst == self.current_instance else ""
+                    print(f" {i+1}. {inst}{curr}")
+                
+                sel = input("\nEnter number to switch: ").strip()
+                if sel.isdigit():
+                    idx = int(sel) - 1
+                    if 0 <= idx < len(instances):
+                        self.load_instance_config(instances[idx])
+                        print(f"Switched to {instances[idx]}")
+                        self.wait_input()
+            
+            elif c == '2':
+                name = input("Enter new instance name (alphanumeric, no spaces): ").strip()
+                if name and name.isalnum():
+                    if name in instances:
+                        print("Instance already exists.")
+                    else:
+                        self.load_instance_config(name)
+                        print(f"Created and switched to {name}")
+                        self.wait_input()
+                else:
+                    print("Invalid name.")
+                    self.wait_input()
+            
+            elif c == '3':
+                found = get_existing_server_names(self.config['install_dir'])
+                print("\nScanning Zomboid/Server/ for .ini files...")
+                imported_count = 0
+                for f in found:
+                    if f not in instances:
+                        print(f" - Found unmanaged server: {f}")
+                        yn = input(f"   Import as instance '{f}'? [y/N]: ").strip().lower()
+                        if yn == 'y':
+                            # Create a config for it
+                            # We temporarily load it to init defaults then switch back or stay?
+                            # Let's save it directly without full switch context switch overhead if possible, 
+                            # but simpler to just use load_instance_config which creates it
+                            prev = self.current_instance
+                            self.load_instance_config(f)
+                            # Custom overrides for imported
+                            self.config['server_name'] = f
+                            self.config['service_name'] = f"pzserver-{f}"
+                            self.save_config()
+                            print(f"   Imported {f}.")
+                            imported_count += 1
+                            # Switch back to previous or stay? Let's stay on the last one imported or revert?
+                            # User likely wants to manage one.
+                            if prev != f:
+                                # Revert for now so loop doesn't get confusing
+                                self.load_instance_config(prev)
+                
+                if imported_count == 0:
+                    print("No new servers to import.")
+                else:
+                    print(f"\nImported {imported_count} instances.")
+                self.wait_input()
 
     def submenu_config(self):
         last_index = 0

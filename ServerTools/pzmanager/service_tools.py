@@ -88,7 +88,7 @@ After=network.target
 [Service]
 Type=simple
 User={user}
-ExecStart=/usr/bin/python3 {self_path} --scheduler
+ExecStart=/usr/bin/python3 {self_path} --scheduler --instance {mgr.current_instance}
 Restart=always
 
 [Install]

@@ -8,7 +8,11 @@ DEFAULT_STEAMCMD_DIR = os.path.expanduser("~/steamcmd")
 DEFAULT_BACKUP_DIR = os.path.expanduser("~/pzbackups")
 DEFAULT_SERVICE_NAME = "pzserver"
 DEFAULT_SERVER_NAME = "servertest"
-CONFIG_FILE = os.path.expanduser("~/.config/pz_manager/config.json")
+CONFIG_DIR = os.path.expanduser("~/.config/pz_manager")
+GLOBAL_CONFIG_FILE = os.path.join(CONFIG_DIR, "global.json")
+INSTANCES_DIR = os.path.join(CONFIG_DIR, "instances")
+# Deprecated but kept for migration check
+OLD_CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 # ANSI Colors
 C_RESET = "\033[0m"
