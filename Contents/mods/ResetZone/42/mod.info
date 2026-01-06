@@ -1,0 +1,8 @@
+name=ResetZone
+id=ResetZone
+poster=poster.png
+description=Automatically restarts the server and resets marked map zones to replenish loot. Includes an admin UI to easily mark/unmark zones in-game.
+versionMin=42.0
+author=Mathieu
+modversion=1.0.0
+icon=icon.png

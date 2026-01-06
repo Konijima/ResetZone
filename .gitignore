@@ -1,0 +1,8 @@
+# Ignore build artifacts and generated files
+release_v*/
+System/JavaAgent/out/
+System/JavaAgent/*.jar
+*.class
+*.log
+.DS_Store
+Thumbs.db
