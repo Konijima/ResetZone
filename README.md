@@ -5,7 +5,7 @@ Run these commands on your Linux server.
 
 ```bash
 # 1. Install prerequisites
-sudo apt update && sudo apt install git default-jdk -y
+sudo apt update && sudo apt install git default-jdk python3 -y
 
 # 2. Clone repository
 git clone https://github.com/Konijima/ResetZone.git
