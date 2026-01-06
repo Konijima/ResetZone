@@ -8,8 +8,19 @@ def get_recent_backups(mgr):
     b_dir = mgr.config.get("backup_dir", DEFAULT_BACKUP_DIR)
     if not os.path.exists(b_dir):
         return []
-    # Sort by mtime descending
-    files = glob.glob(os.path.join(b_dir, "*.tar.gz"))
+    
+    inst = mgr.current_instance
+    # Sort by mtime descending. Filter for current instance.
+    # Pattern: pz_backup_{inst}_*.tar.gz
+    # Use glob pattern to filter automatically
+    pattern = os.path.join(b_dir, f"pz_backup_{inst}_*.tar.gz")
+    files = glob.glob(pattern)
+    
+    # Backwards compatibility: If instance is 'default', also include old non-prefixed backups?
+    # Or strict separation? Let's go with strict separation to encourage migration, 
+    # but maybe we should display ALL only if specific flag? 
+    # For now, stick to instance specific to prevent confusion.
+    
     files.sort(key=os.path.getmtime, reverse=True)
     return files
 
@@ -23,7 +34,10 @@ def backup_data(mgr):
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     os.makedirs(mgr.config["backup_dir"], exist_ok=True)
-    fname = f"pz_backup_{ts}.tar.gz"
+    
+    inst = mgr.current_instance
+    fname = f"pz_backup_{inst}_{ts}.tar.gz"
+    
     dest = os.path.join(mgr.config["backup_dir"], fname)
     
     print(f"Backing up {data_dir}...")
@@ -120,7 +134,10 @@ def perform_auto_backup(mgr):
     # Modified backup logic for non-interactive / minimal output
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     os.makedirs(mgr.config["backup_dir"], exist_ok=True)
-    fname = f"pz_backup_auto_{ts}.tar.gz"
+    
+    inst = mgr.current_instance
+    fname = f"pz_backup_{inst}_auto_{ts}.tar.gz"
+    
     dest = os.path.join(mgr.config["backup_dir"], fname)
     data_dir = os.path.join(mgr.config["install_dir"], "Zomboid")
     

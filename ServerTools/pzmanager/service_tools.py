@@ -30,9 +30,10 @@ def manage_service_control(mgr):
             ("Start", '1'),
             ("Stop", '2'),
             ("Restart", '3'),
-            ("View Logs", '4'),
-            (svc_action_label, '5'),
-            (sched_action_label, '6'),
+            ("View Console Logs (journalctl)", '4'),
+            ("View Scheduler Logs (Activity)", '5'),
+            (svc_action_label, '6'),
+            (sched_action_label, '7'),
             ("Back", 'b')
         ]
 
@@ -48,13 +49,23 @@ def manage_service_control(mgr):
              # Use -e to jump to end, but allow pager scrolling. 
              # No -f so we can scroll back. User can press F in less to follow.
             run_cmd(f"journalctl -u {svc} -e", shell=True, interactive=mgr.interactive)
-        elif c == '5': 
+        elif c == '5':
+            view_scheduler_logs(mgr)
+        elif c == '6': 
             if svc_installed: uninstall_service_file(mgr, svc)
             else: install_service_file(mgr)
-        elif c == '6':
+        elif c == '7':
             if sched_installed: uninstall_service_file(mgr, sched_svc, is_scheduler=True)
             else: install_scheduler_service(mgr)
         elif c == 'b' or c == 'q' or c is None: return
+
+def view_scheduler_logs(mgr):
+    log_file = os.path.join(LOGS_DIR, f"scheduler_{mgr.current_instance}.log")
+    if os.path.exists(log_file):
+        run_cmd(f"less +G {log_file}", shell=True, interactive=mgr.interactive)
+    else:
+        print(f"\n{C_YELLOW}No scheduler logs found yet for this instance.{C_RESET}")
+        mgr.wait_input()
 
 def uninstall_service_file(mgr, service_name, is_scheduler=False):
     print_header("Uninstall Service")
