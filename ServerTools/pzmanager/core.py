@@ -177,51 +177,68 @@ class PZManager:
                 sys.exit(0)
 
     def submenu_instances(self):
+        last_index = 0
         while True:
             instances = self.list_instances()
             
-            print_header("Manage Instances")
-            print(f"Current Instance: {C_GREEN}{self.current_instance}{C_RESET}")
-            print(f"Available Instances: {', '.join(instances)}\n")
+            def info_func():
+                return format_info_box({
+                    "Current Instance": self.current_instance,
+                    "Total Instances": str(len(instances)),
+                    "List": ", ".join(instances)
+                })
+
+            items = [
+                ("Switch Instance", 'switch'),
+                ("Create New Instance", 'create'),
+                ("Detect & Import Existing Servers", 'detect'),
+                ("Back", 'b')
+            ]
             
-            print("1. Switch Instance")
-            print("2. Create New Instance")
-            print("3. Detect & Import Existing Servers (from Zomboid/Server)")
-            print("b. Back")
+            menu = InteractiveMenu(items, title="Manage Instances", info_text=info_func, default_index=last_index)
+            choice = menu.show()
+            last_index = menu.selected
             
-            c = input("\nSelect: ").strip().lower()
-            
-            if c == 'b': return
-            elif c == '1':
-                print("\nAvailable Instances:")
-                for i, inst in enumerate(instances):
-                    curr = " *" if inst == self.current_instance else ""
-                    print(f" {i+1}. {inst}{curr}")
+            if choice == 'b' or choice == 'q' or choice is None: return
+            elif choice == 'switch':
+                switch_items = []
+                for inst in instances:
+                    label = f"{inst} {C_GREEN}(Active){C_RESET}" if inst == self.current_instance else inst
+                    switch_items.append((label, inst))
                 
-                sel = input("\nEnter number to switch: ").strip()
-                if sel.isdigit():
-                    idx = int(sel) - 1
-                    if 0 <= idx < len(instances):
-                        self.load_instance_config(instances[idx])
-                        print(f"Switched to {instances[idx]}")
-                        self.wait_input()
+                switch_items.append(("Cancel", 'cancel'))
+                
+                # Default to current instance index
+                def_idx = 0
+                if self.current_instance in instances:
+                    def_idx = instances.index(self.current_instance)
+                
+                sm = InteractiveMenu(switch_items, title="Switch Instance", default_index=def_idx)
+                s_choice = sm.show()
+                
+                if s_choice and s_choice != 'cancel':
+                    self.load_instance_config(s_choice)
             
-            elif c == '2':
+            elif choice == 'create':
+                print_header("Create Instance")
                 name = input("Enter new instance name (alphanumeric, no spaces): ").strip()
                 if name and name.isalnum():
                     if name in instances:
                         print("Instance already exists.")
+                        self.wait_input()
                     else:
                         self.load_instance_config(name)
                         print(f"Created and switched to {name}")
                         self.wait_input()
                 else:
-                    print("Invalid name.")
-                    self.wait_input()
+                    if name:
+                        print("Invalid name.")
+                        self.wait_input()
             
-            elif c == '3':
+            elif choice == 'detect':
                 found = get_existing_server_names(self.config['install_dir'])
-                print("\nScanning Zomboid/Server/ for .ini files...")
+                print_header("Import Servers")
+                print("Scanning Zomboid/Server/ for .ini files...")
                 imported_count = 0
                 for f in found:
                     if f not in instances:
@@ -229,9 +246,6 @@ class PZManager:
                         yn = input(f"   Import as instance '{f}'? [y/N]: ").strip().lower()
                         if yn == 'y':
                             # Create a config for it
-                            # We temporarily load it to init defaults then switch back or stay?
-                            # Let's save it directly without full switch context switch overhead if possible, 
-                            # but simpler to just use load_instance_config which creates it
                             prev = self.current_instance
                             self.load_instance_config(f)
                             # Custom overrides for imported
@@ -240,10 +254,8 @@ class PZManager:
                             self.save_config()
                             print(f"   Imported {f}.")
                             imported_count += 1
-                            # Switch back to previous or stay? Let's stay on the last one imported or revert?
-                            # User likely wants to manage one.
+                            # Revert to previous
                             if prev != f:
-                                # Revert for now so loop doesn't get confusing
                                 self.load_instance_config(prev)
                 
                 if imported_count == 0:
